@@ -2,60 +2,64 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>单摆物理模拟器 MVP 带波形监视器</title>
+<title>单摆物理模拟器｜任务四 双监视器+CSV导出</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a24; color:white; padding:10px}
 #mainCanvas{border:1px solid #444; float:left;}
 #plotCanvas{border:1px solid #444; margin-left:20px; float:left;}
+#exportBtn{clear:both;margin-top:10px;padding:8px 16px;font-size:16px}
 </style>
 </head>
 <body>
 <canvas id="mainCanvas" width="800" height="600"></canvas>
 <canvas id="plotCanvas" width="600" height="400"></canvas>
+<button id="exportBtn">导出CSV数据</button>
+
 <script>
 const canvas = document.getElementById("mainCanvas");
 const ctx = canvas.getContext("2d");
 const plotCanvas = document.getElementById("plotCanvas");
 const pctx = plotCanvas.getContext("2d");
+const exportBtn = document.getElementById("exportBtn");
 
-// ========== 单摆参数（任务三可以修改调参） ==========
-const L = 200;       // 摆长 px
+// ========== 单摆可调参数 ==========
+const L = 200;
 const g = 9.8;
-let theta = Math.PI / 4; // 初始45度
+let theta = Math.PI / 4;    // 初始角度 45°
 let omega = 0;
 const originX = canvas.width / 2;
 const originY = 120;
 
-// 波形绘图缓存
 let timeData = [];
 let thetaData = [];
+let omegaData = [];
 let time = 0;
 const dt = 0.016;
 
 function animate() {
-    // 动力学方程
+    // 单摆动力学方程
     const alpha = -(g / L) * Math.sin(theta);
     omega += alpha * dt;
     theta += omega * dt;
 
-    // 保存数据给绘图监视器
+    // 保存仿真数据
     time += dt;
     timeData.push(time);
     thetaData.push(theta);
-    // 限制数据长度，防止内存溢出
+    omegaData.push(omega);
+    // 限制数据长度
     if(timeData.length>500){
         timeData.shift();
         thetaData.shift();
+        omegaData.shift();
     }
 
     // ========== 绘制单摆动画 ==========
     ctx.fillStyle = "#1a1a24";
     ctx.fillRect(0,0,canvas.width,canvas.height);
-
     const x = originX + L * Math.sin(theta);
     const y = originY + L * Math.cos(theta);
-
     //摆线
     ctx.beginPath();
     ctx.moveTo(originX, originY);
@@ -63,8 +67,7 @@ function animate() {
     ctx.strokeStyle="#cccccc";
     ctx.lineWidth=2;
     ctx.stroke();
-
-    //发光摆球
+    //摆球
     ctx.beginPath();
     ctx.arc(x,y,16,0,2*Math.PI);
     ctx.fillStyle="#42ccff";
@@ -73,26 +76,49 @@ function animate() {
     ctx.fill();
     ctx.shadowBlur=0;
 
-    // ========== 绘制监视器：θ-t 角度时间曲线 ==========
+    // ========== 双波形监视器 ==========
     pctx.fillStyle="#1a1a24";
     pctx.fillRect(0,0,plotCanvas.width,plotCanvas.height);
+    // 黄色：θ(t) 角度
     pctx.strokeStyle="#ffdd44";
     pctx.beginPath();
     for(let i=0;i<timeData.length;i++){
-        const t = timeData[i];
-        const th = thetaData[i];
         const px = 50 + i;
-        const py = 200 - th*80;
+        const py = 150 - thetaData[i] * 80;
         if(i===0) pctx.moveTo(px,py);
         else pctx.lineTo(px,py);
     }
     pctx.stroke();
-    pctx.fillStyle="#fff";
-    pctx.fillText("θ(t) 角度-时间曲线（监视器）",10,20);
+    // 红色：ω(t) 角速度
+    pctx.strokeStyle="#ff5555";
+    pctx.beginPath();
+    for(let i=0;i<timeData.length;i++){
+        const px = 50 + i;
+        const py = 150 - omegaData[i] * 80;
+        if(i===0) pctx.moveTo(px,py);
+        else pctx.lineTo(px,py);
+    }
+    pctx.stroke();
 
+    pctx.fillStyle="#fff";
+    pctx.fillText("黄色：θ(t)角度，红色：ω(t)角速度",10,20);
     requestAnimationFrame(animate);
 }
 animate();
+
+// ========== CSV导出功能 ==========
+exportBtn.onclick = function(){
+    let csv = "time,theta,omega\n";
+    for(let i=0;i<timeData.length;i++){
+        csv += `${timeData[i]},${thetaData[i]},${omegaData[i]}\n`;
+    }
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pendulum_data.csv";
+    a.click();
+}
 </script>
 </body>
 </html>
