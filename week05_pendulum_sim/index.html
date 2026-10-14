@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>单摆物理模拟器 MVP</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a24;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
+canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="pendulumCanvas"></canvas>
+<script>
+const canvas = document.getElementById("pendulumCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = 800;
+canvas.height = 600;
+
+// 参数
+const L = 200;       // 摆长 px
+const g = 9.8;
+let theta = Math.PI / 4; // 初始45度
+let omega = 0;
+const originX = canvas.width / 2;
+const originY = 120;
+
+function animate() {
+    // 单摆动力学
+    const alpha = -(g / L) * Math.sin(theta);
+    omega += alpha * 0.016;
+    theta += omega * 0.016;
+
+    // 摆球坐标
+    const x = originX + L * Math.sin(theta);
+    const y = originY + L * Math.cos(theta);
+
+    // 绘制画布背景
+    ctx.fillStyle = "#1a1a24";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // 绘制摆线
+    ctx.beginPath();
+    ctx.moveTo(originX, originY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle="#cccccc";
+    ctx.lineWidth=2;
+    ctx.stroke();
+
+    // 发光摆球
+    ctx.beginPath();
+    ctx.arc(x,y,16,0,2*Math.PI);
+    ctx.fillStyle="#42ccff";
+    ctx.shadowColor="#42ccff";
+    ctx.shadowBlur=18;
+    ctx.fill();
+    ctx.shadowBlur=0;
+
+    requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
